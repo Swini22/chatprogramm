@@ -1,0 +1,176 @@
+package view;
+
+import java.awt.Color;
+import java.awt.TextField;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.util.ArrayList;
+
+import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
+
+import model.ChatroomDTO;
+import model.EmployeeDepartmentDTO;
+import model.Service;
+
+public class EmployeeFinderView {
+
+	private JFrame frame;
+	private JPanel employees;
+	private JPanel departments;
+	private JScrollPane jscrollpane;
+	private JLabel departmentLabel;
+	private TextField searchBar;
+	private JButton search;
+	private Service db_service;
+	private ArrayList<String> checkedDepartments;
+	private ArrayList<String> employeesListAlreadyInChat;
+	private ArrayList<EmployeeDepartmentDTO> employeesList;
+	private ChatroomDTO c;
+	private String username;
+
+	public EmployeeFinderView(Service db_service, String name) {
+		this.db_service = db_service;
+		this.username = name;
+		getData();
+		prepareGui();
+		show();
+	}
+
+	public EmployeeFinderView(Service db_service, ChatroomDTO c,
+			ArrayList<String> employeesListAlreadyInChat) {
+		this.db_service = db_service;
+		this.c = c;
+		this.username = c.getUser();
+		this.employeesListAlreadyInChat = employeesListAlreadyInChat;
+		getData();
+		prepareGui();
+		show();
+	}
+
+	private void getData() {
+		employeesList = db_service.searchAll();
+	}
+
+	private void prepareGui() {
+		frame = new JFrame("Employee Finder");
+		frame.setSize(500, 600);
+		frame.setLocationRelativeTo(null);
+		frame.setResizable(false);
+		frame.setLayout(null);
+
+		employees = new JPanel();
+		employees.setLayout(new BoxLayout(employees, BoxLayout.PAGE_AXIS));
+		employees.setSize(300, 500);
+		employees.setLocation(200, 100);
+		employees.setBorder(BorderFactory.createLineBorder(Color.black));
+
+		for (EmployeeDepartmentDTO e : employeesList) {
+			if (employeesListAlreadyInChat != null) {
+				if (!employeesListAlreadyInChat.contains(e.getUser())) {
+					JLabel l = newLabelWithActionListener(e);
+					employees.add(l);
+				}
+			} else {
+				JLabel l = newLabelWithActionListener(e);
+				employees.add(l);
+			}
+		}
+
+		jscrollpane = new JScrollPane(employees);
+		jscrollpane.setSize(300, 500);
+		jscrollpane.setLocation(200, 100);
+
+		departments = new JPanel();
+		departments.setLayout(new BoxLayout(departments, BoxLayout.PAGE_AXIS));
+		departments.setSize(200, 500);
+		departments.setLocation(0, 100);
+		departments.setBorder(BorderFactory.createLineBorder(Color.black));
+
+		ArrayList<String> departmentList = db_service.getAllDepartments();
+		checkedDepartments = departmentList;
+		for (String s : departmentList) {
+			JCheckBox box = new JCheckBox(s);
+			box.setSelected(true);
+			box.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if (!box.isSelected()) {
+						checkedDepartments.remove(box.getText());
+					} else {
+						checkedDepartments.add(box.getText());
+					}
+				}
+			});
+			departments.add(box);
+		}
+
+		departmentLabel = new JLabel("Departments");
+		departmentLabel.setSize(150, 30);
+		departmentLabel.setLocation(30, 50);
+
+		searchBar = new TextField();
+		searchBar.setSize(150, 30);
+		searchBar.setLocation(200, 50);
+
+		search = new JButton("search");
+		search.setSize(130, 30);
+		search.setLocation(370, 50);
+		search.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String searchWord = searchBar.getText();
+				if (!searchWord.equals("") || departmentList.size() != 0) {
+					ArrayList<String> response = db_service.searchEmployee(
+							searchWord, departmentList);
+					if (response != null) {
+						// anzeigen //+ klicklistener
+					} else {
+						// keine Employees
+					}
+				}
+			}
+		});
+
+		frame.add(jscrollpane);
+		frame.add(departments);
+		frame.add(departmentLabel);
+		frame.add(searchBar);
+		frame.add(search);
+	}
+
+	private JLabel newLabelWithActionListener(EmployeeDepartmentDTO e) {
+		JLabel l = new JLabel(e.getUser());
+		l.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (employeesListAlreadyInChat != null) {
+					if (!employeesListAlreadyInChat.contains(l.getText())) {
+						employeesListAlreadyInChat.add(l.getText());
+						db_service.addUserToChatroom(l.getText(),c.getChatroomId());
+						dispose();
+						new ChatView(db_service, c);
+					}
+				} else {
+					db_service.createNewChatroom(l.getText(), username);
+				}
+			};
+		});
+		return l;
+	}
+
+	public void show() {
+		frame.setVisible(true);
+	}
+
+	public void dispose() {
+		frame.setVisible(false);
+	}
+
+}

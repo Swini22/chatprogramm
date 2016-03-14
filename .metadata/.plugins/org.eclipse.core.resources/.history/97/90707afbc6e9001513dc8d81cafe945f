@@ -1,0 +1,109 @@
+package view;
+
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.Label;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+
+import javax.swing.*;
+
+import model.ChatroomDTO;
+import model.Service;
+
+public class MainMenuView {
+
+	private JFrame frame;
+	private JLabel welcomeLabel;
+	private JButton employeeFinderButton;
+	private JButton cancleButton;
+	private String name;
+	private JScrollPane jscrollpane;
+	private JPanel chatrooms;
+	private ArrayList<ChatroomDTO> list;
+	private Service db_service;
+
+	public MainMenuView(Service db_service, String name) {
+		this.name = name;
+		this.db_service = db_service;
+		getData();
+		prepareGui();
+		show();
+	}
+
+	private void getData() {
+		list = db_service.getChatroomsAndLastMessage(name);
+	}
+
+	private void prepareGui() {
+		frame = new JFrame("Main Menu");
+		frame.setSize(600, 400);
+		frame.setLocationRelativeTo(null);
+		frame.setResizable(false);
+		frame.setLayout(null);
+
+		welcomeLabel = new JLabel("Hello " + name);
+		welcomeLabel.setSize(150, 30);
+		welcomeLabel.setLocation(50, 50);
+
+		chatrooms = new JPanel(new GridLayout(2,200));
+		chatrooms.setSize(500, 150);
+		chatrooms.setLocation(50, 100);
+		chatrooms.setBorder(BorderFactory.createLineBorder(Color.black));
+		
+		jscrollpane = new JScrollPane(chatrooms);
+		jscrollpane.setSize(500, 150);
+		jscrollpane.setLocation(50, 100);
+		
+		for (ChatroomDTO c : list) {
+			Label l = new Label(c.getTopic()+"      "+c.getDateFromLastMessage());
+			l.addMouseListener(new MouseAdapter() {
+				@Override
+                public void mouseClicked(MouseEvent e) {
+					dispose();
+                	new ChatView(db_service, c);
+                }
+            });
+				chatrooms.add(l);
+			}
+
+		employeeFinderButton = new JButton("Employee Finder");
+		employeeFinderButton.setSize(130, 30);
+		employeeFinderButton.setLocation(50, 300);
+		employeeFinderButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dispose();
+				new EmployeeFinderView(db_service, name);
+			}
+		});
+
+		cancleButton = new JButton("close Application");
+		cancleButton.setSize(150, 30);
+		cancleButton.setLocation(400, 300);
+		cancleButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0);
+			}
+		});
+
+		frame.add(welcomeLabel);
+		frame.add(employeeFinderButton);
+		frame.add(cancleButton);
+		frame.add(jscrollpane);
+	}
+
+	public void show() {
+		frame.setVisible(true);
+	}
+
+	public void dispose() {
+		frame.setVisible(false);
+	}
+
+}
